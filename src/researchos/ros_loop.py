@@ -5,7 +5,7 @@ from __future__ import annotations
 from researchos.paper import Paper
 from researchos.paper_registry import PaperRegistry
 from researchos.paths import ensure_data_directories
-from researchos.pdf_intake import list_raw_pdf_files
+from researchos.pdf_intake import intake_manual_pdfs, list_raw_pdf_files
 from researchos.search.search_manager import search_literature
 
 
@@ -41,10 +41,13 @@ class ROSLoop:
             )
 
         raw_pdfs = list_raw_pdf_files()
+        intake_results = intake_manual_pdfs(raw_pdfs, self.registry.all())
+        unmatched_raw = len(raw_pdfs) - len(intake_results)
 
         print(f"Registered papers: {len(self.registry.all())}")
         print(f"Raw PDFs detected: {len(raw_pdfs)}")
-        print(f"Papers missing PDFs: {len(self.registry.pending_pdf())}")
-        print(f"Pending PDFs: {len(self.registry.pending_pdf())}")
+        print(f"Matched intake count: {len(intake_results)}")
+        print(f"Unmatched raw PDF count: {unmatched_raw}")
+        print(f"Papers still missing PDFs: {len(self.registry.pending_pdf())}")
         print(f"Pending parse: {len(self.registry.pending_parse())}")
         print(f"Pending extract: {len(self.registry.pending_extract())}")

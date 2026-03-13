@@ -45,12 +45,48 @@ def move_raw_pdf_to_intake(raw_pdf_path: Path, paper: Paper, intake_dir: Path = 
     return destination
 
 
-def intake_raw_pdf(raw_pdf_path: Path, paper: Paper) -> dict:
+def intake_raw_pdf(raw_pdf_path: Path, paper: Paper, intake_dir: Path = INTAKE_RENAMED_DIR) -> dict:
     """Run manual intake for one raw PDF and return summary record."""
-    destination = move_raw_pdf_to_intake(raw_pdf_path, paper)
+    destination = move_raw_pdf_to_intake(raw_pdf_path, paper, intake_dir=intake_dir)
     return {
         "raw_pdf": str(raw_pdf_path),
         "stored_pdf": str(destination),
         "paper_title": paper.title,
         "paper_doi": paper.doi,
     }
+
+
+def _matches_raw_pdf_to_paper(raw_pdf_path: Path, paper: Paper) -> bool:
+    raw_stem = normalize_text_for_filename(raw_pdf_path.stem)
+    paper_title = normalize_text_for_filename(paper.title)
+
+    if not paper_title:
+        return False
+
+    return paper_title in raw_stem or raw_stem in paper_title
+
+
+def intake_manual_pdfs(
+    raw_pdf_paths: list[Path],
+    papers: list[Paper],
+    intake_dir: Path = INTAKE_RENAMED_DIR,
+) -> list[dict]:
+    """Attempt simple filename/title-based matching and intake for raw PDFs."""
+    results: list[dict] = []
+
+    for raw_pdf in raw_pdf_paths:
+        matched_paper: Paper | None = None
+
+        for paper in papers:
+            if paper.pdf_path:
+                continue
+            if _matches_raw_pdf_to_paper(raw_pdf, paper):
+                matched_paper = paper
+                break
+
+        if matched_paper is None:
+            continue
+
+        results.append(intake_raw_pdf(raw_pdf, matched_paper, intake_dir=intake_dir))
+
+    return results
